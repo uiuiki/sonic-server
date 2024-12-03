@@ -3,35 +3,34 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.common.http;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * @author ZhouYiXun
  * @des 接口响应模型，后续开发相关模块会共用
  * @date 2021/8/15 18:26
  */
-@ApiModel("请求响应模型")
+@Schema(name = "请求响应模型")
 public class RespModel<T> {
-    @ApiModelProperty(value = "状态码", example = "2000")
+    @Schema(description = "状态码")
     private int code;
-    @ApiModelProperty(value = "状态描述", example = "操作成功！")
+    @Schema(description = "状态描述")
     private String message;
-    @ApiModelProperty(value = "响应详情")
+    @Schema(description = "响应详情")
     private T data;
 
     public RespModel() {
@@ -58,11 +57,11 @@ public class RespModel<T> {
         this.data = data;
     }
 
-    public static RespModel result(RespEnum respEnum){
+    public static RespModel result(RespEnum respEnum) {
         return new RespModel(respEnum);
     }
 
-    public static <T> RespModel<T> result(RespEnum respEnum, T data){
+    public static <T> RespModel<T> result(RespEnum respEnum, T data) {
         return new RespModel<T>(respEnum, data);
     }
 

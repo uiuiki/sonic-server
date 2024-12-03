@@ -8,14 +8,14 @@ import com.gitee.sunchenbin.mybatis.actable.annotation.*;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlCharsetConstant;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlEngineConstant;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlTypeConstant;
-import org.cloud.sonic.controller.models.base.TypeConverter;
-import org.cloud.sonic.controller.models.dto.StepsDTO;
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.cloud.sonic.controller.models.base.TypeConverter;
+import org.cloud.sonic.controller.models.dto.StepsDTO;
 import org.cloud.sonic.controller.models.enums.ConditionEnum;
 
 import java.io.Serializable;
@@ -24,7 +24,7 @@ import java.io.Serializable;
  * @author JayWenStar
  * @since 2021-12-17
  */
-@ApiModel(value = "Steps对象", description = "")
+@Schema(name = "Steps对象", description = "")
 @Data
 @Accessors(chain = true)
 @Builder
@@ -84,4 +84,8 @@ public class Steps implements Serializable, TypeConverter<Steps, StepsDTO> {
     @TableField
     @Column(value = "condition_type", defaultValue = "0", isNull = false, comment = "条件类型")
     private Integer conditionType;
+
+    @TableField
+    @Column(value = "disabled", defaultValue = "0", isNull = false, comment = "是否禁用")
+    private Integer disabled;
 }

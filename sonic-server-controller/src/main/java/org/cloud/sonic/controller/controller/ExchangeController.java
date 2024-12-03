@@ -3,23 +3,24 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.controller;
 
 import com.alibaba.fastjson.JSONObject;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.websocket.Session;
 import lombok.extern.slf4j.Slf4j;
 import org.cloud.sonic.common.config.WebAspect;
 import org.cloud.sonic.common.config.WhiteUrl;
@@ -36,10 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 
-import javax.websocket.Session;
-
-
-@Api(tags = "调度相关")
+@Tag(name = "调度相关")
 @RestController
 @RequestMapping("/exchange")
 @Slf4j
@@ -51,7 +49,7 @@ public class ExchangeController {
     private DevicesService devicesService;
 
     @WebAspect
-    @ApiOperation(value = "重启设备", notes = "根据 id 重启特定设备")
+    @Operation(summary = "重启设备", description = "根据 id 重启特定设备")
     @GetMapping("/reboot")
     public RespModel<String> reboot(@RequestParam(name = "id") int id) {
 
@@ -72,7 +70,7 @@ public class ExchangeController {
     }
 
     @WebAspect
-    @ApiOperation(value = "下线agent", notes = "下线指定的 agent")
+    @Operation(summary = "下线agent", description = "下线指定的 agent")
     @GetMapping("/stop")
     public RespModel<String> stop(@RequestParam(name = "id") int id) {
         Agents agents = agentsService.findById(id);

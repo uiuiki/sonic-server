@@ -8,14 +8,14 @@ import com.gitee.sunchenbin.mybatis.actable.annotation.*;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlCharsetConstant;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlEngineConstant;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlTypeConstant;
-import org.cloud.sonic.controller.models.base.TypeConverter;
-import org.cloud.sonic.controller.models.dto.ElementsDTO;
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.cloud.sonic.controller.models.base.TypeConverter;
+import org.cloud.sonic.controller.models.dto.ElementsDTO;
 
 import java.io.Serializable;
 
@@ -23,7 +23,7 @@ import java.io.Serializable;
  * @author JayWenStar
  * @since 2021-12-17
  */
-@ApiModel(value = "Elements对象", description = "")
+@Schema(name ="Elements对象", description = "")
 @Data
 @Accessors(chain = true)
 @Builder
@@ -61,4 +61,15 @@ public class Elements implements Serializable, TypeConverter<Elements, ElementsD
     @Column(value = "module_id", isNull = true, comment = "所属项目id", defaultValue = "0")
     @Index(value = "IDX_MODULE_ID", columns = {"module_id"})
     private Integer moduleId;
+
+    public static Elements newDeletedElement(int id) {
+        String tips = "Element does not exist.";
+        return new Elements()
+                .setId(id)
+                .setEleName(tips)
+                .setModuleId(0)
+                .setEleType("id")
+                .setEleValue(tips)
+                .setProjectId(0);
+    }
 }

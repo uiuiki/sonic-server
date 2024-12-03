@@ -3,25 +3,25 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.quartz;
 
 import com.alibaba.fastjson.JSONObject;
-import org.cloud.sonic.controller.mapper.JobsMapper;
 import org.cloud.sonic.controller.models.domain.Jobs;
 import org.cloud.sonic.controller.models.interfaces.JobType;
 import org.cloud.sonic.controller.services.JobsService;
+import org.cloud.sonic.controller.tools.QuartzJobTools;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +59,7 @@ public class QuartzHandler {
             JobDetail jobDetail = JobBuilder.newJob(jobClass).withIdentity(jobs.getId() + "").build();
             jobDetail.getJobDataMap().put("id", jobs.getId());
             jobDetail.getJobDataMap().put("type", JobType.TEST_JOB);
-            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(jobs.getCronExpression())
+            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(QuartzJobTools.validateOrDisableCronExpression(jobs.getCronExpression()))
                     .withMisfireHandlingInstructionDoNothing();
             CronTrigger trigger = TriggerBuilder.newTrigger().withIdentity(jobs.getId() + "").withSchedule(scheduleBuilder).build();
             scheduler.scheduleJob(jobDetail, trigger);
@@ -135,7 +135,7 @@ public class QuartzHandler {
         try {
             TriggerKey triggerKey = TriggerKey.triggerKey(jobs.getId() + "");
             CronTrigger trigger = (CronTrigger) scheduler.getTrigger(triggerKey);
-            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(jobs.getCronExpression())
+            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(QuartzJobTools.validateOrDisableCronExpression(jobs.getCronExpression()))
                     .withMisfireHandlingInstructionDoNothing();
             trigger = trigger.getTriggerBuilder().withIdentity(triggerKey).withSchedule(scheduleBuilder).build();
             scheduler.rescheduleJob(triggerKey, trigger);
@@ -239,7 +239,7 @@ public class QuartzHandler {
                     }
                     break;
             }
-            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(cron)
+            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(QuartzJobTools.validateOrDisableCronExpression(cron))
                     .withMisfireHandlingInstructionDoNothing();
             CronTrigger trigger = TriggerBuilder.newTrigger().withIdentity(type).withSchedule(scheduleBuilder).build();
             scheduler.scheduleJob(jobDetail, trigger);
@@ -251,9 +251,7 @@ public class QuartzHandler {
 
     public void createSysTrigger() {
         for (String type : typeList) {
-//            从数据库中获取数据，然后创建
             Jobs job = jobsService.findByType(type);
-//            首次部署，初始化系统定时任务
             if (job == null) {
                 job = initSysJob(type);
             }
@@ -263,6 +261,7 @@ public class QuartzHandler {
 
     /**
      * 初始化系统定时任务
+     *
      * @param type 系统定时任务类型
      */
     private Jobs initSysJob(String type) {

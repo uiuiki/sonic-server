@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
@@ -66,20 +66,22 @@ public class TestCasesServiceImpl extends SonicServiceImpl<TestCasesMapper, Test
     private ModulesMapper modulesMapper;
 
     @Override
-    public CommentPage<TestCasesDTO> findAll(int projectId, int platform, String name, List<Integer> moduleIds, Page<TestCases> pageable,
-                                             String idSort, String designerSort, String editTimeSort) {
+    public CommentPage<TestCasesDTO> findAll(int projectId, int platform, String name, List<Integer> moduleIds,
+                                             List<String> caseAuthorNames,
+                                             Page<TestCases> pageable,
+                                             String idSort, String editTimeSort) {
 
         LambdaQueryChainWrapper<TestCases> lambdaQuery = lambdaQuery();
 
         lambdaQuery.eq(projectId != 0, TestCases::getProjectId, projectId)
                 .eq(platform != 0, TestCases::getPlatform, platform)
                 .in(moduleIds != null && moduleIds.size() > 0, TestCases::getModuleId, moduleIds)
+                .in(caseAuthorNames != null && caseAuthorNames.size() > 0, TestCases::getDesigner, caseAuthorNames)
                 .like(!StringUtils.isEmpty(name), TestCases::getName, name)
-                .orderByDesc(StringUtils.isEmpty(editTimeSort) && StringUtils.isEmpty(idSort) && StringUtils.isEmpty(designerSort),
+                .orderByDesc(StringUtils.isEmpty(editTimeSort) && StringUtils.isEmpty(idSort),
                         TestCases::getEditTime)
                 .orderBy(!StringUtils.isEmpty(editTimeSort), "asc".equals(editTimeSort), TestCases::getEditTime)
-                .orderBy(!StringUtils.isEmpty(idSort), "asc".equals(idSort), TestCases::getId)
-                .orderBy(!StringUtils.isEmpty(designerSort), "asc".equals(designerSort), TestCases::getDesigner);
+                .orderBy(!StringUtils.isEmpty(idSort), "asc".equals(idSort), TestCases::getId);
 
         //写入对应模块信息
         Page<TestCases> page = lambdaQuery.page(pageable);
@@ -91,6 +93,10 @@ public class TestCasesServiceImpl extends SonicServiceImpl<TestCasesMapper, Test
 
     @Transactional
     public TestCasesDTO findCaseDetail(TestCases testCases) {
+        if (testCases == null){
+            return new TestCasesDTO().setId(0).setName("unknown");
+        }
+
         if (testCases.getModuleId() != null && testCases.getModuleId() != 0) {
             Modules modules = modulesMapper.selectById(testCases.getModuleId());
             if (modules != null) {
@@ -118,7 +124,7 @@ public class TestCasesServiceImpl extends SonicServiceImpl<TestCasesMapper, Test
                             .eq(TestSuitesTestCases::getTestCasesId, id)
             );
 
-            List<StepsDTO> stepsList = stepsService.findByCaseIdOrderBySort(id);
+            List<StepsDTO> stepsList = stepsService.findByCaseIdOrderBySort(id, false);
             for (StepsDTO steps : stepsList) {
                 steps.setCaseId(0);
                 stepsService.updateById(steps.convertTo());
@@ -146,7 +152,7 @@ public class TestCasesServiceImpl extends SonicServiceImpl<TestCasesMapper, Test
             jsonDebug.put("pf", runStepCase.getPlatform());
 
             JSONArray array = new JSONArray();
-            List<StepsDTO> stepsList = stepsService.findByCaseIdOrderBySort(id);
+            List<StepsDTO> stepsList = stepsService.findByCaseIdOrderBySort(id, true);
             for (StepsDTO steps : stepsList) {
                 array.add(testSuitesService.getStep(steps));
             }
@@ -223,7 +229,7 @@ public class TestCasesServiceImpl extends SonicServiceImpl<TestCasesMapper, Test
             stepsDTO.add(steps.convertTo());
 
         }
-        List<StepsDTO> stepsCopyDTOS = stepsService.handleSteps(stepsDTO);
+        List<StepsDTO> stepsCopyDTOS = stepsService.handleSteps(stepsDTO, false);
 
         //需要插入的步骤记录
         List<PublicStepsAndStepsIdDTO> needCopySteps = stepsService.stepAndIndex(stepsCopyDTOS);
@@ -281,6 +287,11 @@ public class TestCasesServiceImpl extends SonicServiceImpl<TestCasesMapper, Test
             save(testCases.setModuleId(0));
         }
         return true;
+    }
+
+    @Override
+    public List<String> findAllCaseAuthor(int projectId, int platform) {
+        return testCasesMapper.listAllTestCaseAuthor(projectId, platform);
     }
 }
 

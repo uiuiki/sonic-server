@@ -3,22 +3,23 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.annotation.Resource;
 import org.cloud.sonic.controller.mapper.RoleResourcesMapper;
 import org.cloud.sonic.controller.mapper.RolesMapper;
 import org.cloud.sonic.controller.models.base.CommentPage;
@@ -32,7 +33,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -50,7 +50,7 @@ public class RolesServiceImpl extends SonicServiceImpl<RolesMapper, Roles> imple
         Roles roles = rolesDTO.convertTo();
         if (rolesDTO.getId() == null) {
             save(roles);
-        }else {
+        } else {
             lambdaUpdate().eq(Roles::getId, roles.getId())
                     .update(roles);
         }
@@ -69,7 +69,7 @@ public class RolesServiceImpl extends SonicServiceImpl<RolesMapper, Roles> imple
     }
 
     @Override
-    public Map<Integer, Roles> mapRoles(){
+    public Map<Integer, Roles> mapRoles() {
         return lambdaQuery()
                 .orderByDesc(Roles::getId)
                 .list()
@@ -83,10 +83,10 @@ public class RolesServiceImpl extends SonicServiceImpl<RolesMapper, Roles> imple
     }
 
     @Transactional
-    public void editResourceRoles(Integer roleId,Integer resId, boolean hasAuth) {
+    public void editResourceRoles(Integer roleId, Integer resId, boolean hasAuth) {
         if (hasAuth) {
             roleResourcesMapper.insert(RoleResources.builder().roleId(roleId).resId(resId).build());
-        }else {
+        } else {
             roleResourcesMapper.delete(new LambdaQueryWrapper<RoleResources>()
                     .eq(RoleResources::getRoleId, roleId)
                     .eq(RoleResources::getResId, resId));

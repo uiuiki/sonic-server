@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
@@ -25,8 +25,6 @@ import org.cloud.sonic.controller.models.base.TypeConverter;
 import org.cloud.sonic.controller.models.domain.PublicSteps;
 import org.cloud.sonic.controller.models.domain.PublicStepsSteps;
 import org.cloud.sonic.controller.models.domain.Steps;
-import org.cloud.sonic.controller.models.domain.StepsElements;
-import org.cloud.sonic.controller.models.dto.ElementsDTO;
 import org.cloud.sonic.controller.models.dto.PublicStepsAndStepsIdDTO;
 import org.cloud.sonic.controller.models.dto.PublicStepsDTO;
 import org.cloud.sonic.controller.models.dto.StepsDTO;
@@ -39,7 +37,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -50,13 +51,20 @@ import java.util.stream.Collectors;
 @Service
 public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, PublicSteps> implements PublicStepsService {
 
-    @Autowired private PublicStepsMapper publicStepsMapper;
-    @Autowired private ElementsMapper elementsMapper;
-    @Autowired private PublicStepsStepsMapper publicStepsStepsMapper;
-    @Autowired private StepsElementsMapper stepsElementsMapper;
-    @Autowired private StepsMapper stepsMapper;
-    @Autowired private StepsService stepsService;
-    @Autowired private ElementsService elementsService;
+    @Autowired
+    private PublicStepsMapper publicStepsMapper;
+    @Autowired
+    private ElementsMapper elementsMapper;
+    @Autowired
+    private PublicStepsStepsMapper publicStepsStepsMapper;
+    @Autowired
+    private StepsElementsMapper stepsElementsMapper;
+    @Autowired
+    private StepsMapper stepsMapper;
+    @Autowired
+    private StepsService stepsService;
+    @Autowired
+    private ElementsService elementsService;
 
     @Transactional
     @Override
@@ -64,22 +72,9 @@ public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, 
         Page<PublicSteps> page = lambdaQuery().eq(PublicSteps::getProjectId, projectId)
                 .orderByDesc(PublicSteps::getId)
                 .page(pageable);
-        // 业务join，java层拼接结果，虽然麻烦一点，但sql性能确实能优化
+
         List<PublicStepsDTO> publicStepsDTOList = page.getRecords()
                 .stream().map(TypeConverter::convertTo).collect(Collectors.toList());
-        Set<Integer> publicStepsIdSet = publicStepsDTOList.stream().map(PublicStepsDTO::getId).collect(Collectors.toSet());
-        if (publicStepsIdSet.isEmpty()) {
-            return CommentPage.emptyPage();
-        }
-
-        // publicStepsId -> StepsDTO
-        Map<Integer, List<StepsDTO>> stepsDTOMap = publicStepsMapper.listStepsByPublicStepsIds(publicStepsIdSet)
-                .stream().collect(Collectors.groupingBy(StepsDTO::getPublicStepsId));
-
-        // 将step填充到public step
-        publicStepsDTOList.forEach(
-                e -> e.setSteps(stepsService.handleSteps(stepsDTOMap.get(e.getId())))
-        );
 
         return CommentPage.convertFrom(page, publicStepsDTOList);
     }
@@ -128,7 +123,7 @@ public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, 
 
     @Override
     @Transactional
-    public PublicStepsDTO findById(int id) {
+    public PublicStepsDTO findById(int id, boolean hiddenDisabled) {
         PublicSteps publicSteps = lambdaQuery().eq(PublicSteps::getId, id)
                 .orderByDesc(PublicSteps::getId)
                 .one();
@@ -137,7 +132,7 @@ public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, 
         List<StepsDTO> steps = stepsMapper.listByPublicStepsId(publicSteps.getId())
                 .stream().map(TypeConverter::convertTo).collect(Collectors.toList());
 
-        stepsService.handleSteps(steps);
+        stepsService.handleSteps(steps, hiddenDisabled);
 
         PublicStepsDTO publicStepsDTO = publicSteps.convertTo().setSteps(steps);
         return publicStepsDTO.setSteps(steps);
@@ -187,7 +182,7 @@ public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, 
             oldStepsDtoList.add(steps.convertTo());
         }
         //递归关联所有步骤，然后取出
-        List<StepsDTO> stepsDTOS = stepsService.handleSteps(oldStepsDtoList);
+        List<StepsDTO> stepsDTOS = stepsService.handleSteps(oldStepsDtoList, false);
         List<StepsDTO> needAllCopySteps = stepsService.getChildSteps(stepsDTOS);
 
         List<PublicStepsAndStepsIdDTO> oldStepDto = stepsService.stepAndIndex(needAllCopySteps);
@@ -221,7 +216,7 @@ public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, 
                 n++;
                 //关联steps和elId
                 if (steps.getElements() != null) {
-                    elementsService.newStepBeLinkedEle(steps,step);
+                    elementsService.newStepBeLinkedEle(steps, step);
                 }
                 continue;
             }
@@ -230,7 +225,7 @@ public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, 
             stepsMapper.insert(step);
             //关联steps和elId
             if (steps.getElements() != null) {
-                elementsService.newStepBeLinkedEle(steps,step);
+                elementsService.newStepBeLinkedEle(steps, step);
             }
             //插入的stepId 记录到需要关联步骤的list种
             publicStepsStepsId.add(step.getId());
@@ -247,4 +242,21 @@ public class PublicStepsServiceImpl extends SonicServiceImpl<PublicStepsMapper, 
         }
     }
 
+    @Override
+    public boolean checkPublicStepRecursion(PublicStepsDTO publicStepsDTO) {
+        if (publicStepsDTO.getId() == null) {
+            return false;
+        }
+        if (publicStepsDTO.getSteps() != null && publicStepsDTO.getSteps().size() > 0) {
+            for (StepsDTO curStepsDTO : publicStepsDTO.getSteps()) {
+                if (curStepsDTO.getStepType().equals("publicStep")) {
+                    String curText = curStepsDTO.getText();
+                    if (publicStepsDTO.getId().toString().equals(curText)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 }

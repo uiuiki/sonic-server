@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
@@ -25,18 +25,22 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 import org.cloud.sonic.common.http.RespEnum;
 import org.cloud.sonic.common.http.RespModel;
+import org.cloud.sonic.controller.mapper.DevicesMapper;
+import org.cloud.sonic.controller.mapper.TestSuitesDevicesMapper;
+import org.cloud.sonic.controller.models.domain.Agents;
 import org.cloud.sonic.controller.models.domain.Devices;
 import org.cloud.sonic.controller.models.domain.TestSuitesDevices;
 import org.cloud.sonic.controller.models.domain.Users;
 import org.cloud.sonic.controller.models.http.DeviceDetailChange;
+import org.cloud.sonic.controller.models.http.OccupyParams;
 import org.cloud.sonic.controller.models.http.UpdateDeviceImg;
 import org.cloud.sonic.controller.models.interfaces.DeviceStatus;
+import org.cloud.sonic.controller.models.interfaces.PlatformType;
 import org.cloud.sonic.controller.services.AgentsService;
 import org.cloud.sonic.controller.services.DevicesService;
 import org.cloud.sonic.controller.services.UsersService;
-import org.cloud.sonic.controller.mapper.DevicesMapper;
-import org.cloud.sonic.controller.mapper.TestSuitesDevicesMapper;
 import org.cloud.sonic.controller.services.impl.base.SonicServiceImpl;
+import org.cloud.sonic.controller.transport.TransportWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,6 +75,71 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
     private AgentsService agentsService;
 
     @Override
+    public RespModel occupy(OccupyParams occupyParams, String token) {
+        Devices devices = findByUdId(occupyParams.getUdId());
+        if (devices != null) {
+            if (devices.getStatus().equals(DeviceStatus.ONLINE)) {
+                Agents agents = agentsService.findById(devices.getAgentId());
+                if (agents != null) {
+                    JSONObject jsonObject = (JSONObject) JSONObject.toJSON(occupyParams);
+                    jsonObject.put("msg", "occupy");
+                    jsonObject.put("token", token);
+                    jsonObject.put("platform", devices.getPlatform());
+                    TransportWorker.send(agents.getId(), jsonObject);
+                    JSONObject result = new JSONObject();
+                    switch (devices.getPlatform()) {
+                        case PlatformType.ANDROID -> {
+                            if (occupyParams.getSasRemotePort() != 0) {
+                                result.put("sas", String.format("adb connect %s:%d", agents.getHost(), occupyParams.getSasRemotePort()));
+                            }
+                            if (occupyParams.getUia2RemotePort() != 0) {
+                                result.put("uia2", String.format("http://%s:%d/uia/%d", agents.getHost(), agents.getPort(), occupyParams.getUia2RemotePort()));
+                            }
+                        }
+                        case PlatformType.IOS -> {
+                            if (occupyParams.getSibRemotePort() != 0) {
+                                result.put("sib", String.format("sib remote connect --host %s -p %d", agents.getHost(), occupyParams.getSibRemotePort()));
+                            }
+                            if (occupyParams.getWdaServerRemotePort() != 0) {
+                                result.put("wdaServer", String.format("http://%s:%d", agents.getHost(), occupyParams.getWdaServerRemotePort()));
+                            }
+                            if (occupyParams.getWdaMjpegRemotePort() != 0) {
+                                result.put("wdaMjpeg", String.format("http://%s:%d", agents.getHost(), occupyParams.getWdaMjpegRemotePort()));
+                            }
+                        }
+                    }
+                    return new RespModel<>(RespEnum.HANDLE_OK, result);
+                } else {
+                    return new RespModel<>(RespEnum.ID_NOT_FOUND);
+                }
+            } else {
+                return new RespModel<>(RespEnum.DEVICE_NOT_FOUND);
+            }
+        } else {
+            return new RespModel<>(RespEnum.DEVICE_NOT_FOUND);
+        }
+    }
+
+    @Override
+    public RespModel release(String udId, String token) {
+        Users users = usersService.getUserInfo(token);
+        Devices devices = findByUdId(udId);
+        if (devices != null) {
+            if (!devices.getUser().equals(users.getUserName())) {
+                return new RespModel<>(RespEnum.UNAUTHORIZED);
+            }
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("msg", "release");
+            jsonObject.put("udId", udId);
+            jsonObject.put("platform", devices.getPlatform());
+            TransportWorker.send(devices.getAgentId(), jsonObject);
+            return new RespModel<>(RespEnum.HANDLE_OK);
+        } else {
+            return new RespModel<>(RespEnum.DEVICE_NOT_FOUND);
+        }
+    }
+
+    @Override
     public boolean saveDetail(DeviceDetailChange deviceDetailChange) {
         if (existsById(deviceDetailChange.getId())) {
             Devices devices = findById(deviceDetailChange.getId());
@@ -81,6 +150,18 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
         } else {
             return false;
         }
+    }
+
+    @Override
+    public void updatePosition(int id, int position) {
+        Devices o = lambdaQuery().eq(Devices::getId, id).one();
+        Devices devices = lambdaQuery().eq(Devices::getAgentId, o.getAgentId()).eq(Devices::getPosition, position).one();
+        if (devices != null) {
+            devices.setPosition(0);
+            save(devices);
+        }
+        o.setPosition(position);
+        save(o);
     }
 
     @Override
@@ -109,7 +190,7 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
         if (androidVersion != null || iOSVersion != null || hmVersion != null) {
             chainWrapper.and(i -> {
                 if (androidVersion != null) {
-                    i.or().eq(Devices::getPlatform, 1).eq(Devices::getIsHm, 0)
+                    i.or().eq(Devices::getPlatform, PlatformType.ANDROID).eq(Devices::getIsHm, 0)
                             .and(j -> {
                                 for (String v : androidVersion) {
                                     j.or().likeRight(Devices::getVersion, v);
@@ -117,14 +198,14 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
                             });
                 }
                 if (iOSVersion != null) {
-                    i.or().eq(Devices::getPlatform, 2).and(j -> {
+                    i.or().eq(Devices::getPlatform, PlatformType.IOS).and(j -> {
                         for (String v : iOSVersion) {
                             j.or().likeRight(Devices::getVersion, v);
                         }
                     });
                 }
                 if (hmVersion != null) {
-                    i.or().eq(Devices::getPlatform, 1).eq(Devices::getIsHm, 1)
+                    i.or().eq(Devices::getPlatform, PlatformType.ANDROID).eq(Devices::getIsHm, 1)
                             .and(j -> {
                                 for (String v : hmVersion) {
                                     j.or().likeRight(Devices::getVersion, v);
@@ -154,10 +235,10 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
             chainWrapper.in(Devices::getStatus, status);
         }
 
-        if (!StringUtils.isEmpty(deviceInfo)) {
-            chainWrapper.like(Devices::getUdId, deviceInfo)
-                    .or().like(Devices::getModel, deviceInfo)
-                    .or().like(Devices::getChiName, deviceInfo);
+        if (StringUtils.hasText(deviceInfo)) {
+        	chainWrapper.and(q -> {
+        		q.like(Devices::getUdId, deviceInfo).or().like(Devices::getModel, deviceInfo).or().like(Devices::getNickName, deviceInfo).or().like(Devices::getChiName, deviceInfo);
+        	});
         }
 
         chainWrapper.last("order by case\n" +
@@ -171,8 +252,7 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
                 "        status asc,\n" +
                 "        id desc");
 
-        Page<Devices> devicesPage = chainWrapper.page(pageable);
-        return devicesPage;
+        return chainWrapper.page(pageable);
     }
 
     @Override
@@ -247,6 +327,7 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
             devices.setUser("");
             devices.setPassword("");
             devices.setImgUrl("");
+            devices.setPosition(0);
             devices.setTemperature(0);
             devices.setVoltage(0);
             devices.setLevel(0);
@@ -333,7 +414,7 @@ public class DevicesServiceImpl extends SonicServiceImpl<DevicesMapper, Devices>
 
     @Override
     public Integer findTemper() {
-        OptionalDouble tempers = new LambdaQueryChainWrapper<Devices>(devicesMapper).ne(Devices::getTemperature, 0)
+        OptionalDouble tempers = new LambdaQueryChainWrapper<>(devicesMapper).ne(Devices::getTemperature, 0)
                 .in(Devices::getStatus, Arrays.asList(DeviceStatus.ONLINE, DeviceStatus.DEBUGGING, DeviceStatus.TESTING))
                 .list().stream().mapToInt(Devices::getTemperature).average();
         return tempers.isPresent() ? (int) tempers.getAsDouble() : 0;

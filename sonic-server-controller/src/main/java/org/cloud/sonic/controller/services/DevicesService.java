@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services;
@@ -23,11 +23,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.cloud.sonic.common.http.RespModel;
 import org.cloud.sonic.controller.models.domain.Devices;
 import org.cloud.sonic.controller.models.http.DeviceDetailChange;
+import org.cloud.sonic.controller.models.http.OccupyParams;
 import org.cloud.sonic.controller.models.http.UpdateDeviceImg;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author ZhouYiXun
@@ -35,13 +35,20 @@ import java.util.concurrent.CompletableFuture;
  * @date 2021/8/16 22:51
  */
 public interface DevicesService extends IService<Devices> {
+
+    RespModel occupy(OccupyParams occupyParams, String token);
+
+    RespModel release(String udId, String token);
+
     boolean saveDetail(DeviceDetailChange deviceDetailChange);
+
+    void updatePosition(int id, int position);
 
     void updateDevicesUser(JSONObject jsonObject);
 
     void updateImg(UpdateDeviceImg updateDeviceImg);
 
-    Page<Devices> findAll(List<String> iOSVersion, List<String> androidVersion,List<String> hmVersion, List<String> manufacturer,
+    Page<Devices> findAll(List<String> iOSVersion, List<String> androidVersion, List<String> hmVersion, List<String> manufacturer,
                           List<String> cpu, List<String> size, List<Integer> agentId, List<String> status,
                           String deviceInfo, Page<Devices> pageable);
 

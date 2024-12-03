@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
@@ -31,7 +31,6 @@ import org.cloud.sonic.controller.models.interfaces.ResultDetailStatus;
 import org.cloud.sonic.controller.models.interfaces.ResultStatus;
 import org.cloud.sonic.controller.services.*;
 import org.cloud.sonic.controller.services.impl.base.SonicServiceImpl;
-import org.cloud.sonic.controller.tools.RobotMsgTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,12 +53,18 @@ public class ResultsServiceImpl extends SonicServiceImpl<ResultsMapper, Results>
     private final Logger logger = LoggerFactory.getLogger(ResultsServiceImpl.class);
     ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
 
-    @Autowired private ResultsMapper resultsMapper;
-    @Autowired private ResultDetailService resultDetailService;
-    @Autowired private ProjectsService projectsService;
-    @Autowired private RobotMsgTool robotMsgTool;
-    @Autowired private TestSuitesService testSuitesService;
-    @Autowired private TestCasesService testCasesService;
+    @Autowired
+    private ResultsMapper resultsMapper;
+    @Autowired
+    private ResultDetailService resultDetailService;
+    @Autowired
+    private ProjectsService projectsService;
+    @Autowired
+    private AlertRobotsService alertRobotsService;
+    @Autowired
+    private TestSuitesService testSuitesService;
+    @Autowired
+    private TestCasesService testCasesService;
 
     @Override
     public Page<Results> findByProjectId(int projectId, Page<Results> pageable) {
@@ -137,7 +142,7 @@ public class ResultsServiceImpl extends SonicServiceImpl<ResultsMapper, Results>
                     jsonObject.put("case", testCases);
                     int status = 0;
                     for (int j = caseTimes.size() - 1; j >= 0; j--) {
-                        if (caseTimes.get(j).getInteger("case_id") == testCases.getId()) {
+                        if (Objects.equals(caseTimes.get(j).getInteger("case_id"), testCases.getId())) {
                             jsonObject.put("startTime", sf.format(caseTimes.get(j).getDate("startTime")));
                             jsonObject.put("endTime", sf.format(caseTimes.get(j).getDate("endTime")));
                             caseTimes.remove(j);
@@ -160,6 +165,10 @@ public class ResultsServiceImpl extends SonicServiceImpl<ResultsMapper, Results>
                     jsonObject.put("status", status);
                     jsonObject.put("device", device);
                     result.add(jsonObject);
+                    // 按照执行开始时间排序 - 升序
+                    result.sort(Comparator.comparing(
+                            obj -> ((JSONObject) obj).getDate("startTime"))
+                    );
                 }
                 return result;
             } else {
@@ -233,10 +242,7 @@ public class ResultsServiceImpl extends SonicServiceImpl<ResultsMapper, Results>
                         break;
                 }
             }
-            if (projects.getRobotType() != 0 && projects.getRobotToken().length() > 0 ) {
-                robotMsgTool.sendDayReportMessage(projects.getRobotToken(), projects.getRobotSecret(), projects.getId()
-                        , projects.getProjectName(), sf.format(yesterday), sf.format(today), suc, warn, fail, projects.getRobotType());
-            }
+            alertRobotsService.sendProjectReportMessage(projects.getId(), projects.getProjectName(), yesterday, today, false, suc, warn, fail);
         }
     }
 
@@ -267,10 +273,7 @@ public class ResultsServiceImpl extends SonicServiceImpl<ResultsMapper, Results>
                         break;
                 }
             }
-            if (projects.getRobotType() != 0 && projects.getRobotToken().length() > 0 ) {
-                robotMsgTool.sendWeekReportMessage(projects.getRobotToken(), projects.getRobotSecret(), projects.getId()
-                        , projects.getProjectName(), sf.format(lastWeek), sf.format(today), suc, warn, fail, count, projects.getRobotType());
-            }
+            alertRobotsService.sendProjectReportMessage(projects.getId(), projects.getProjectName(), lastWeek, today, true, suc, warn, fail);
         }
     }
 
@@ -327,14 +330,11 @@ public class ResultsServiceImpl extends SonicServiceImpl<ResultsMapper, Results>
             delete(results.getId());
         } else {
             //发收相同的话，表明测试结束了
-            if (results.getReceiveMsgCount() == results.getSendMsgCount()) {
+            if (Objects.equals(results.getReceiveMsgCount(), results.getSendMsgCount())) {
                 results.setEndTime(new Date());
                 save(results);
-                Projects projects = projectsService.findById(results.getProjectId());
-                if (projects != null && projects.getRobotType() != 0 && projects.getRobotToken().length() > 0) {
-                    robotMsgTool.sendResultFinishReport(projects.getRobotToken(), projects.getRobotSecret(),
-                            results.getSuiteName(), sucCount, warnCount, failCount, projects.getId(), results.getId(), projects.getRobotType());
-                }
+                alertRobotsService.sendResultFinishReport(results.getSuiteId(),
+                        results.getSuiteName(), sucCount, warnCount, failCount, results.getProjectId(), results.getId());
             }
         }
     }

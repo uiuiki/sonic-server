@@ -1,5 +1,5 @@
 server:
-  port: ${SONIC_EUREKA_PORT:9090}
+  port: ${SONIC_EUREKA_PORT:8761}
 
 spring:
   security:
@@ -17,10 +17,12 @@ eureka:
     instance-id: ${random.uuid}
   server:
     enable-self-preservation: false
-    eviction-interval-timer-in-ms: 10000
+    eviction-interval-timer-in-ms: 5000
+    response-cache-update-interval-ms: 5000
+    use-read-only-response-cache: false
   client:
-    #    单机部署的话以下为false
+    #    For stand-alone deployment, the following is false 单机部署的话以下为false
     register-with-eureka: ${IS_CLUSTERED:false}
     fetch-registry: ${IS_CLUSTERED:false}
     service-url:
-      defaultZone: http://${SONIC_EUREKA_USERNAME:sonic}:${SONIC_EUREKA_PASSWORD:sonic}@${SONIC_EUREKA_HOST:127.0.0.1}:${SONIC_EUREKA_PORT:9090}/eureka/
+      defaultZone: http://${SONIC_EUREKA_USERNAME:sonic}:${SONIC_EUREKA_PASSWORD:sonic}@${SONIC_EUREKA_HOST:127.0.0.1}:${SONIC_EUREKA_PORT:8761}/eureka/

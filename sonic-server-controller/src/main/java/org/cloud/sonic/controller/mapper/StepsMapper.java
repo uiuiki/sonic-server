@@ -1,18 +1,18 @@
 package org.cloud.sonic.controller.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.cloud.sonic.controller.models.domain.Steps;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.apache.ibatis.annotations.*;
+import org.cloud.sonic.controller.models.domain.Steps;
 
 import java.util.List;
 
 /**
- *  Mapper 接口
+ * Mapper 接口
+ *
  * @author JayWenStar
  * @since 2021-12-17
  */
@@ -26,7 +26,7 @@ public interface StepsMapper extends BaseMapper<Steps> {
     List<Steps> listStepsByElementId(@Param("elementsId") int elementsId);
 
     @Select("select s.* from public_steps_steps pss " +
-                "inner join steps s on pss.steps_id = s.id " +
+            "inner join steps s on pss.steps_id = s.id " +
             "where pss.public_steps_id = #{publicStepsId}")
     List<Steps> listByPublicStepsId(@Param("publicStepsId") int publicStepsId);
 
@@ -39,12 +39,10 @@ public interface StepsMapper extends BaseMapper<Steps> {
             "WHERE " +
             "steps.id = steps_elements.steps_id  " +
             "AND steps_elements.elements_id = elements.id  " +
-            "AND elements.ele_name LIKE '%${ele_name}%'  " +
+            "AND elements.ele_name LIKE concat('%',#{ele_name}, '%')  " +
             "union  " +
-            "SELECT * FROM steps WHERE content LIKE '%${ele_name}%') t ORDER BY id DESC")
-    IPage<Steps> sreachByEleName(Page<?> page , @Param("ele_name") String eleName);
-
-
+            "SELECT * FROM steps WHERE content LIKE concat('%',#{ele_name}, '%')) t ORDER BY id DESC")
+    IPage<Steps> searchByEleName(Page<?> page, @Param("ele_name") String eleName);
 
 
 }

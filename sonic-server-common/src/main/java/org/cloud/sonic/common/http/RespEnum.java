@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.common.http;
@@ -29,9 +29,9 @@ public enum RespEnum {
     DELETE_OK(2000, "ok.delete"),
     UPLOAD_OK(2000, "ok.upload"),
     SEND_OK(2000, "ok.send"),
-    COPY_OK(2000,"ok.copy"),
-    SEARCH_FAIL(3005,"fail.search"),
-    UPDATE_FAIL(3004,"fail.update"),
+    COPY_OK(2000, "ok.copy"),
+    SEARCH_FAIL(3005, "fail.search"),
+    UPDATE_FAIL(3004, "fail.update"),
     DELETE_FAIL(3002, "fail.delete"),
     UPLOAD_FAIL(3003, "fail.upload"),
     UNAUTHORIZED(1001, "unauthorized"),
@@ -39,7 +39,7 @@ public enum RespEnum {
     PERMISSION_DENIED(1003, "permission.denied"),
     RESOURCE_NOT_FOUND(1004, "not.found.resource"),
     ID_NOT_FOUND(3001, "not.found.id"),
-    DEVICE_NOT_FOUND(3002,"not.found.device"),
+    DEVICE_NOT_FOUND(3002, "not.found.device"),
     AGENT_NOT_ONLINE(5001, "not.online.agent"),
     PARAMS_NOT_VALID(4004, "not.valid.params"),
     PARAMS_NOT_READABLE(4005, "not.readable.params"),

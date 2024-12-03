@@ -2,8 +2,9 @@ package org.cloud.sonic.controller.services.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.toolkit.AopUtils;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.cloud.sonic.common.config.WhiteUrl;
 import org.cloud.sonic.controller.mapper.ResourcesMapper;
@@ -29,7 +30,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,9 +55,9 @@ public class ResourcesServiceImpl extends SonicServiceImpl<ResourcesMapper, Reso
         Map<RequestMappingInfo, HandlerMethod> map = requestMappingHandlerMapping.getHandlerMethods();
         Map<String, Resources> parentMap = new HashMap<>();
 
-        map.forEach((key, value) ->{
+        map.forEach((key, value) -> {
             String beanName = value.getBean().toString();
-            Resources parentResource = parentMap.getOrDefault(beanName, processParent(beanName, parentMap)) ;
+            Resources parentResource = parentMap.getOrDefault(beanName, processParent(beanName, parentMap));
             if (parentResource == null) {
                 return;
             }
@@ -77,7 +77,7 @@ public class ResourcesServiceImpl extends SonicServiceImpl<ResourcesMapper, Reso
     }
 
     private Resources processParent(String beanName, Map<String, Resources> parentMap) {
-        Api api = SpringTool.getBean(beanName).getClass().getAnnotation(Api.class);
+        Tag api = SpringTool.getBean(beanName).getClass().getAnnotation(Tag.class);
         if (api == null) {
             return null;
         }
@@ -95,16 +95,16 @@ public class ResourcesServiceImpl extends SonicServiceImpl<ResourcesMapper, Reso
             parentMap.put(beanName, parentResource);
             needInsert = true;
         }
-        String tag = api.tags()[0];
+        String tag = api.name();
         parentResource.setDesc(tag);
         parentResource.setPath(res);
         parentResource.setVersion(version);
         // 每次扫描都把parent 设置为正常资源
-        parentResource.setWhite(UrlType.NORMAL );
+        parentResource.setWhite(UrlType.NORMAL);
 
         if (needInsert) {
             insert(parentResource);
-        }else {
+        } else {
             parentResource.setUpdateTime(null);
             updateById(parentResource);
         }
@@ -115,7 +115,7 @@ public class ResourcesServiceImpl extends SonicServiceImpl<ResourcesMapper, Reso
     private void processResource(Resources parentResource, RequestMappingInfo key, HandlerMethod value) {
 
         String path = (String) key.getPatternsCondition().getPatterns().toArray()[0];
-        String method = ((RequestMethod) key.getMethodsCondition().getMethods().toArray()[0]).toString();
+        String method = key.getMethodsCondition().getMethods().toArray()[0].toString();
 
         boolean needInsert = false;
 
@@ -129,25 +129,28 @@ public class ResourcesServiceImpl extends SonicServiceImpl<ResourcesMapper, Reso
             //初始化说有资源不需要鉴权
             resource.setNeedAuth(UrlType.WHITE);
             needInsert = true;
+            if (path.equals("/devices/stopDebug")) {
+                resource.setNeedAuth(UrlType.NORMAL);
+            }
         }
         resource.setParentId(parentResource.getId());
         resource.setMethod(method);
         resource.setPath(path);
         resource.setVersion(version);
 
-        ApiOperation apiOperation = value.getMethodAnnotation(ApiOperation.class);
+        Operation apiOperation = value.getMethodAnnotation(Operation.class);
         WhiteUrl whiteUrl = value.getMethodAnnotation(WhiteUrl.class);
         if (apiOperation == null) {
             resource.setDesc("未设置");
-        }else {
-            resource.setDesc(apiOperation.value());
+        } else {
+            resource.setDesc(apiOperation.summary());
         }
         //标记相关资源加白
         resource.setWhite(whiteUrl == null ? UrlType.NORMAL : UrlType.WHITE);
 
         if (needInsert) {
             insert(resource);
-        }else {
+        } else {
             resource.setUpdateTime(null);
             updateById(resource);
         }
@@ -212,15 +215,15 @@ public class ResourcesServiceImpl extends SonicServiceImpl<ResourcesMapper, Reso
 
     @Override
     public List<ResourcesDTO> listRoleResource(Integer roleId) {
-        CommentPage<ResourcesDTO> commentPage = listResource(new Page<>(),null, true);
+        CommentPage<ResourcesDTO> commentPage = listResource(new Page<>(), null, true);
 
-        List<ResourcesDTO>  parentListResource = listParentResource();
-        Map<Integer, ResourcesDTO> mapParent = parentListResource.stream().collect(Collectors.toMap(ResourcesDTO::getId, Function.identity() ,(a, b) -> a));
+        List<ResourcesDTO> parentListResource = listParentResource();
+        Map<Integer, ResourcesDTO> mapParent = parentListResource.stream().collect(Collectors.toMap(ResourcesDTO::getId, Function.identity(), (a, b) -> a));
 
         List<RoleResources> roleResourcesList = lambdaQuery(roleResourcesMapper).eq(RoleResources::getRoleId, roleId).list();
         Map<Integer, RoleResources> map = null;
         if (!CollectionUtils.isEmpty(roleResourcesList)) {
-            map = roleResourcesList.stream().collect(Collectors.toMap(RoleResources::getResId, Function.identity() ,(a, b) -> a));
+            map = roleResourcesList.stream().collect(Collectors.toMap(RoleResources::getResId, Function.identity(), (a, b) -> a));
         }
 
         Map<Integer, RoleResources> finalMap = map;
@@ -228,7 +231,7 @@ public class ResourcesServiceImpl extends SonicServiceImpl<ResourcesMapper, Reso
             //判断当前资源是否具有权限
             if (finalMap != null && finalMap.containsKey(a.getId())) {
                 a.setHasAuth(true);
-            }else {
+            } else {
                 a.setHasAuth(false);
             }
             // 构建权限树

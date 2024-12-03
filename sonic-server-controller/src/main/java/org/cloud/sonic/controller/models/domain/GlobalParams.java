@@ -7,14 +7,14 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.gitee.sunchenbin.mybatis.actable.annotation.*;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlCharsetConstant;
 import com.gitee.sunchenbin.mybatis.actable.constants.MySqlEngineConstant;
-import org.cloud.sonic.controller.models.base.TypeConverter;
-import org.cloud.sonic.controller.models.dto.GlobalParamsDTO;
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.cloud.sonic.controller.models.base.TypeConverter;
+import org.cloud.sonic.controller.models.dto.GlobalParamsDTO;
 
 import java.io.Serializable;
 
@@ -22,7 +22,7 @@ import java.io.Serializable;
  * @author JayWenStar
  * @since 2021-12-17
  */
-@ApiModel(value = "GlobalParams对象", description = "")
+@Schema(name ="GlobalParams对象", description = "")
 @Data
 @Accessors(chain = true)
 @Builder

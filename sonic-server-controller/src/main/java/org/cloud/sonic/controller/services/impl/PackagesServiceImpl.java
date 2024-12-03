@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
@@ -55,10 +55,12 @@ public class PackagesServiceImpl extends SonicServiceImpl<PackagesMapper, Packag
     }
 
     @Override
-    public CommentPage<PackageDTO> findByProjectId(int projectId, String branch, String platform, Page<Packages> pageable) {
+    public CommentPage<PackageDTO> findByProjectId(int projectId, String branch, String platform, String packageName,
+                                                   Page<Packages> pageable) {
         Page<Packages> page = lambdaQuery().eq(Packages::getProjectId, projectId)
                 .eq(StringUtils.isNotBlank(platform), Packages::getPlatform, platform)
                 .like(StringUtils.isNotBlank(branch), Packages::getBranch, branch)
+                .like(StringUtils.isNotBlank(packageName), Packages::getPkgName, packageName)
                 .orderByDesc(Packages::getId)
                 .page(pageable);
 
@@ -66,7 +68,5 @@ public class PackagesServiceImpl extends SonicServiceImpl<PackagesMapper, Packag
                 .stream().map(TypeConverter::convertTo).collect(Collectors.toList());
 
         return CommentPage.convertFrom(page, packageDTOList);
-
-
     }
 }

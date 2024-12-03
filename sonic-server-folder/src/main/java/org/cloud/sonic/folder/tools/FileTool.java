@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.folder.tools;
@@ -61,9 +61,10 @@ public class FileTool {
             folder.mkdirs();
         }
         //防止文件重名
+        final String nombre = file.getOriginalFilename();
+        final int p = nombre.lastIndexOf(".");
         File local = new File(folder.getPath() + File.separator +
-                UUID.randomUUID() + file.getOriginalFilename()
-                .substring(file.getOriginalFilename().lastIndexOf(".")));
+                UUID.randomUUID() + (p>=0 ? nombre.substring(p) : nombre));
         try {
             file.transferTo(local.getAbsoluteFile());
         } catch (FileAlreadyExistsException e) {
@@ -71,6 +72,26 @@ public class FileTool {
         }
         host = host.replace(":80/", "/");
         return host + "/api/folder/" + local.getPath().replaceAll("\\\\", "/");
+    }
+
+    public String uploadV2(String folderName, MultipartFile file) throws IOException {
+        SimpleDateFormat sf = new SimpleDateFormat("yyyyMMdd");
+        File folder = new File(folderName + File.separator
+                + sf.format(Calendar.getInstance().getTimeInMillis()));
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+        //防止文件重名
+        final String nombre = file.getOriginalFilename();
+        final int p = nombre.lastIndexOf(".");
+        File local = new File(folder.getPath() + File.separator +
+                UUID.randomUUID() + (p>=0 ? nombre.substring(p) : nombre));
+        try {
+            file.transferTo(local.getAbsoluteFile());
+        } catch (FileAlreadyExistsException e) {
+            logger.error(e.getMessage());
+        }
+        return local.getPath().replaceAll("\\\\", "/");
     }
 
     /**

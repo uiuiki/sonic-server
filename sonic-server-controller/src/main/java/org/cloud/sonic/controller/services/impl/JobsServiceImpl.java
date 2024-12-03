@@ -3,41 +3,38 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.apache.ibatis.util.MapUtil;
 import org.cloud.sonic.common.exception.SonicException;
 import org.cloud.sonic.common.http.RespEnum;
 import org.cloud.sonic.common.http.RespModel;
+import org.cloud.sonic.controller.mapper.JobsMapper;
 import org.cloud.sonic.controller.models.domain.Jobs;
 import org.cloud.sonic.controller.models.interfaces.JobStatus;
+import org.cloud.sonic.controller.quartz.QuartzHandler;
 import org.cloud.sonic.controller.services.JobsService;
-import org.cloud.sonic.controller.mapper.JobsMapper;
 import org.cloud.sonic.controller.services.impl.base.SonicServiceImpl;
 import org.quartz.CronTrigger;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.cloud.sonic.controller.quartz.QuartzHandler;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author ZhouYiXun
@@ -147,10 +144,10 @@ public class JobsServiceImpl extends SonicServiceImpl<JobsMapper, Jobs> implemen
 
     @Override
     public void updateSysJob(String type, String cron) {
-        Jobs jobs =  lambdaQuery()
+        Jobs jobs = lambdaQuery()
                 .eq(Jobs::getType, type)
                 .one();
-        if(jobs != null){
+        if (jobs != null) {
             jobs.setCronExpression(cron);
             save(jobs);
         }

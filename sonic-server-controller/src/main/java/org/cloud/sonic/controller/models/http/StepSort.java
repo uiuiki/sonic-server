@@ -1,26 +1,55 @@
 package org.cloud.sonic.controller.models.http;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
 import java.io.Serializable;
 
-@ApiModel("拖拽排序请求模型")
+@Schema(name = "拖拽排序请求模型")
 public class StepSort implements Serializable {
     @NotNull
-    @ApiModelProperty(value = "测试用例id", required = true, example = "1")
+    @Schema(description = "测试用例id", required = true, example = "1")
     private int caseId;
     @NotNull
-    @ApiModelProperty(value = "拖拽方向", required = true, example = "up | down")
+    @Schema(description = "拖拽方向", required = true, example = "up | down")
     private String direction;
     @Positive
-    @ApiModelProperty(value = "移动后被影响的第一个步骤sort序号", required = true, example = "1")
+    @Schema(description = "移动后被影响的第一个步骤sort序号", required = true, example = "1")
     private int startId;
     @Positive
-    @ApiModelProperty(value = "移动后被影响的最后一个步骤sort序号", required = true, example = "9")
+    @Schema(description = "移动后被影响的最后一个步骤sort序号", required = true, example = "9")
     private int endId;
+    @Schema(description = "移动步骤发生分组更改的新parentId", required = false, example = "1")
+    private Integer newParentId;
+    @Schema(description = "更换分组后在新分组中新的index", required = false, example = "1")
+    private Integer newIndex;
+    @Schema(description = "被移动步骤的主键id", required = false, example = "1")
+    private Integer stepsId;
+
+    public Integer getStepsId() {
+        return stepsId;
+    }
+
+    public void setStepsId(Integer stepsId) {
+        this.stepsId = stepsId;
+    }
+
+    public Integer getNewIndex() {
+        return newIndex;
+    }
+
+    public void setNewIndex(Integer newIndex) {
+        this.newIndex = newIndex;
+    }
+
+    public Integer getNewParentId() {
+        return newParentId;
+    }
+
+    public void setNewParentId(Integer newParentId) {
+        this.newParentId = newParentId;
+    }
 
     public int getCaseId() {
         return caseId;
@@ -61,6 +90,9 @@ public class StepSort implements Serializable {
                 ", direction='" + direction + '\'' +
                 ", startId=" + startId +
                 ", endId=" + endId +
+                ", newParentId=" + newParentId +
+                ", newIndex=" + newIndex +
+                ", stepsId=" + stepsId +
                 '}';
     }
 }

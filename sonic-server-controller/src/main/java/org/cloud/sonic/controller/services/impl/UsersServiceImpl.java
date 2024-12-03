@@ -3,16 +3,16 @@
  *   Copyright (C) 2022 SonicCloudOrg
  *
  *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
+ *   it under the terms of the GNU Affero General Public License as published
+ *   by the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU General Public License
+ *   You should have received a copy of the GNU Affero General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.cloud.sonic.controller.services.impl;
@@ -47,12 +47,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
-import springfox.documentation.annotations.Cacheable;
 
-import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -98,9 +95,9 @@ public class UsersServiceImpl extends SonicServiceImpl<UsersMapper, Users> imple
     @Override
     public JSONObject getLoginConfig() {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("registerEnable",registerEnable);
-        jsonObject.put("normalEnable",normalEnable);
-        jsonObject.put("ldapEnable",ldapEnable);
+        jsonObject.put("registerEnable", registerEnable);
+        jsonObject.put("normalEnable", normalEnable);
+        jsonObject.put("ldapEnable", ldapEnable);
         return jsonObject;
     }
 
@@ -128,7 +125,7 @@ public class UsersServiceImpl extends SonicServiceImpl<UsersMapper, Users> imple
             if (checkLdapAuthenticate(userInfo, true)) {
                 token = jwtTokenTool.getToken(userInfo.getUserName());
             }
-        }else if (normalEnable && UserLoginType.LOCAL.equals(users.getSource()) && DigestUtils.md5DigestAsHex(userInfo.getPassword().getBytes()).equals(users.getPassword())) {
+        } else if (normalEnable && UserLoginType.LOCAL.equals(users.getSource()) && DigestUtils.md5DigestAsHex(userInfo.getPassword().getBytes()).equals(users.getPassword())) {
             token = jwtTokenTool.getToken(users.getUserName());
             users.setPassword("");
             logger.info("user: " + userInfo.getUserName() + " login! token:" + token);
@@ -145,6 +142,7 @@ public class UsersServiceImpl extends SonicServiceImpl<UsersMapper, Users> imple
         if (!ldapEnable) return false;
         String username = userInfo.getUserName();
         String password = userInfo.getPassword();
+        if (password.isEmpty()) return false;
         logger.info("login check content username {}", username);
         AndFilter filter = new AndFilter();
         filter.and(new EqualsFilter("objectclass", objectClass)).and(new EqualsFilter(userId, username));
@@ -155,7 +153,7 @@ public class UsersServiceImpl extends SonicServiceImpl<UsersMapper, Users> imple
             }
             return authResult;
         } catch (Exception e) {
-            logger.error("ldap login failed, cause: {}", e);
+            logger.info("ldap login failed, cause: {}", e.getMessage());
             return false;
         }
     }
@@ -218,7 +216,7 @@ public class UsersServiceImpl extends SonicServiceImpl<UsersMapper, Users> imple
         Map<Integer, Roles> rolesMap = rolesServices.mapRoles();
         final Roles emptyRole = new Roles();
         List<UsersDTO> rolesDTOList = users.getRecords().stream()
-                .map( e -> {
+                .map(e -> {
                     UsersDTO usersDTO = e.convertTo();
                     Roles role = rolesMap.getOrDefault(e.getUserRole(), emptyRole);
                     usersDTO.setRole(role.getId())
